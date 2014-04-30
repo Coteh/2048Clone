@@ -1,6 +1,7 @@
 ﻿#region Using Statements
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -23,6 +24,16 @@ namespace _2048Clone {
 
         delegate void AdditionalDraws(SpriteBatch _spriteBatch);
         AdditionalDraws drawSomeMoreStuff;
+        event AdditionalDraws DrawSomeMoreStuff {
+            add {
+                if (drawSomeMoreStuff == null || !drawSomeMoreStuff.GetInvocationList().Contains(value)) {
+                    drawSomeMoreStuff += value;
+                }
+            }
+            remove {
+                drawSomeMoreStuff -= value;
+            }
+        }
 
         delegate void UpdateMode();
         UpdateMode updateMethod;
@@ -94,7 +105,7 @@ namespace _2048Clone {
 
             //listens for game over
             if (gameBoard.IsGameOver) {
-                if (drawSomeMoreStuff != GameOverDraw) drawSomeMoreStuff = GameOverDraw;
+                if (drawSomeMoreStuff != GameOverDraw) DrawSomeMoreStuff += GameOverDraw;
             }
         }
 
@@ -109,7 +120,7 @@ namespace _2048Clone {
             } else if (inputHelper.CheckForKeyboardPress(Keys.Down)) {
                 gameBoard.BeginMove(gameBoard.DOWN);
             } else if (inputHelper.CheckForKeyboardPress(Keys.R)) {
-                drawSomeMoreStuff = OverlayDraw;
+                DrawSomeMoreStuff -= GameOverDraw;
                 gameBoard = new GameBoard();
             }
         }
@@ -130,11 +141,11 @@ namespace _2048Clone {
         }
 
         void OverlayDraw(SpriteBatch _spriteBatch) {
-
+            _spriteBatch.DrawString(Assets.daFont, "Score: " + gameBoard.Score, Vector2.Zero, Color.Black);
         }
 
         void GameOverDraw(SpriteBatch _spriteBatch) {
-            _spriteBatch.DrawString(Assets.daFont, "Game Over! Press R to try again", Vector2.Zero, Color.Black);
+            _spriteBatch.DrawString(Assets.daFont, "Game Over! Press R to try again", new Vector2(0,16), Color.Black);
         }
     }
 }

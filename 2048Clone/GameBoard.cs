@@ -20,6 +20,10 @@ namespace _2048Clone {
 
         Random randy = new Random();
 
+        public int Score {
+            get { return score; }
+        }
+
         public bool IsGameOver {
             get { return isGameOver; }
         }
@@ -321,6 +325,7 @@ namespace _2048Clone {
         void Merge(ref int _block1, ref int _block2) {
             _block1 += _block2;
             _block2 = 0;
+            score += _block1;
             isMoved = true; //if we only merged a block and not moved anything, this will let the random block generator spawn a block
         }
 

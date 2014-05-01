@@ -21,6 +21,9 @@ namespace _2048Clone {
         InputHelper inputHelper;
 
         GameBoard gameBoard;
+        Vector2 boardPos;
+
+        bool checkForGameOver, checkFor2048;
 
         delegate void AdditionalDraws(SpriteBatch _spriteBatch);
         AdditionalDraws drawSomeMoreStuff;
@@ -54,11 +57,17 @@ namespace _2048Clone {
         /// </summary>
         protected override void Initialize() {
             inputHelper = InputHelper.Instance;
-            gameBoard = new GameBoard();
+            boardPos = new Vector2(GraphicsDevice.Viewport.Width / 8, GraphicsDevice.Viewport.Height / 8);
+            NewGame();
             updateMethod = GameUpdate;
             drawSomeMoreStuff = OverlayDraw;
 
             base.Initialize();
+        }
+
+        void NewGame() {
+            checkForGameOver = checkFor2048 = true;
+            gameBoard = new GameBoard(boardPos);
         }
 
         /// <summary>
@@ -104,8 +113,21 @@ namespace _2048Clone {
             UpdateGameInput();
 
             //listens for game over
-            if (gameBoard.IsGameOver) {
-                if (drawSomeMoreStuff != GameOverDraw) DrawSomeMoreStuff += GameOverDraw;
+            if (checkForGameOver) {
+                if (gameBoard.IsGameOver) {
+                    DrawSomeMoreStuff -= GoalDraw; //remove the goal draw if it's there
+                    DrawSomeMoreStuff += GameOverDraw;
+                    checkForGameOver = false;
+                    checkFor2048 = false; //it's game over, so no point checking for 2048 anymore either
+                    return;
+                }
+            }
+            //listens for 2048
+            if (checkFor2048) {
+                if (gameBoard.Reached2048) {
+                    DrawSomeMoreStuff += GoalDraw;
+                    checkFor2048 = false;
+                }
             }
         }
 
@@ -121,7 +143,11 @@ namespace _2048Clone {
                 gameBoard.BeginMove(gameBoard.DOWN);
             } else if (inputHelper.CheckForKeyboardPress(Keys.R)) {
                 DrawSomeMoreStuff -= GameOverDraw;
-                gameBoard = new GameBoard();
+                NewGame();
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Space)) {
+                if (gameBoard.Reached2048) {
+                    DrawSomeMoreStuff -= GoalDraw;
+                }
             }
         }
 
@@ -146,6 +172,10 @@ namespace _2048Clone {
 
         void GameOverDraw(SpriteBatch _spriteBatch) {
             _spriteBatch.DrawString(Assets.daFont, "Game Over! Press R to try again", new Vector2(0,16), Color.Black);
+        }
+
+        void GoalDraw(SpriteBatch _spriteBatch) {
+            _spriteBatch.DrawString(Assets.daFont, "Congratulations! You made it to 2048! Press Space to remove this message or R to restart.", new Vector2(0, 16), Color.Black);
         }
     }
 }

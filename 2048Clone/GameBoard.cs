@@ -8,10 +8,11 @@ using System.Text;
 namespace _2048Clone {
     public class GameBoard {
         int[,] board;
+        Vector2 position;
         float scale;
 
         int score;
-        bool isGameOver, isMoved;
+        bool isGameOver, isMoved, reached2048;
 
         public readonly Vector2 UP = new Vector2(0, -1);
         public readonly Vector2 DOWN = new Vector2(0, 1);
@@ -28,9 +29,14 @@ namespace _2048Clone {
             get { return isGameOver; }
         }
 
-        public GameBoard() {
+        public bool Reached2048 {
+            get { return reached2048; }
+        }
+
+        public GameBoard(Vector2 _pos) {
             //GameBoard Initalization
             board = new int[4,4];
+            position = _pos;
             scale = 1.0f;
             score = 0;
             isGameOver = false;
@@ -326,6 +332,9 @@ namespace _2048Clone {
             _block1 += _block2;
             _block2 = 0;
             score += _block1;
+            if (_block1 == 2048) { //if this block is 2048
+                reached2048 = true; //we've reached 2048!
+            }
             isMoved = true; //if we only merged a block and not moved anything, this will let the random block generator spawn a block
         }
 
@@ -362,8 +371,8 @@ namespace _2048Clone {
             for (int i = 0; i < board.GetLength(0); i++) {
                 for (int j = 0; j < board.GetLength(1); j++) {
                     if (board[i, j] != 0) {
-                        _spriteBatch.Draw(Assets.TileImagesArr[BoardHelper.ConvertValueToIndex(board[i,j])], new Vector2(i * (Assets.TileSpriteWidth * scale), j * (Assets.TileSpriteHeight * scale)), null, Color.White, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0);
-                        _spriteBatch.DrawString(Assets.daFont, "" + board[i, j], new Vector2((i * (Assets.TileSpriteWidth * scale)) + ((Assets.TileSpriteWidth * scale) / 3), (j * (Assets.TileSpriteHeight * scale)) + ((Assets.TileSpriteHeight * scale) / 3)), Color.Black);
+                        _spriteBatch.Draw(Assets.TileImagesArr[BoardHelper.ConvertValueToIndex(board[i,j])], new Vector2((i * (Assets.TileSpriteWidth * scale)) + position.X, (j * (Assets.TileSpriteHeight * scale)) + position.Y), null, Color.White, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0);
+                        _spriteBatch.DrawString(Assets.daFont, "" + board[i, j], new Vector2((i * (Assets.TileSpriteWidth * scale)) + ((Assets.TileSpriteWidth * scale) / 3) + position.X, (j * (Assets.TileSpriteHeight * scale)) + ((Assets.TileSpriteHeight * scale) / 3) + position.Y), Color.Black);
                     }
                 }
             }

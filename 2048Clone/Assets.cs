@@ -6,6 +6,8 @@ using System.Text;
 
 namespace _2048Clone {
     public class Assets {
+        public static Texture2D pixel;
+
         public const int AMOUNT_OF_TILE_SPRITES = 8;
 
         public static Texture2D[] TileImagesArr = new Texture2D[AMOUNT_OF_TILE_SPRITES];

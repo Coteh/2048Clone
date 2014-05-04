@@ -13,7 +13,19 @@ using GameClasses;
 
 namespace _2048Clone {
     /// <summary>
-    /// This is the main type for your game
+    /// 2048Clone
+    /// MonoGame/XNA game by James Cote
+    /// 
+    /// About
+    /// ------
+    /// Basically a clone of the smash hit, 2048. If you know how to play the original,
+    /// then you should have no problem with this. Here's a basic rundown though.
+    /// 
+    /// Controls
+    /// ---------
+    /// Arrow keys to move board, try to mix similar blocks together to score points!
+    /// R to restart
+    /// Space to close some of the popup messages (such as the one when you get 2048)
     /// </summary>
     public class Game1 : Game {
         GraphicsDeviceManager graphics;
@@ -22,6 +34,9 @@ namespace _2048Clone {
 
         GameBoard gameBoard;
         Vector2 boardPos;
+
+        Rectangle topHUDRect;
+        Rectangle popupRect;
 
         bool checkForGameOver, checkFor2048;
 
@@ -57,6 +72,10 @@ namespace _2048Clone {
         /// </summary>
         protected override void Initialize() {
             inputHelper = InputHelper.Instance;
+            Assets.pixel = new Texture2D(GraphicsDevice, 1, 1);
+            Assets.pixel.SetData(new[] { Color.White });
+            topHUDRect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 16);
+            popupRect = new Rectangle(0, GraphicsDevice.Viewport.Height / 2, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 8);
             boardPos = new Vector2(GraphicsDevice.Viewport.Width / 8, GraphicsDevice.Viewport.Height / 8);
             NewGame();
             updateMethod = GameUpdate;
@@ -143,6 +162,9 @@ namespace _2048Clone {
                 gameBoard.BeginMove(gameBoard.DOWN);
             } else if (inputHelper.CheckForKeyboardPress(Keys.R)) {
                 DrawSomeMoreStuff -= GameOverDraw;
+                if (gameBoard.Reached2048) {
+                    DrawSomeMoreStuff -= GoalDraw;
+                }
                 NewGame();
             } else if (inputHelper.CheckForKeyboardPress(Keys.Space)) {
                 if (gameBoard.Reached2048) {
@@ -160,22 +182,49 @@ namespace _2048Clone {
 
             spriteBatch.Begin();
             gameBoard.Draw(spriteBatch);
-            drawSomeMoreStuff(spriteBatch);
+            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X, boardPos.Y + (Assets.TileSpriteHeight * 4)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X + (Assets.TileSpriteWidth * 4), boardPos.Y), Color.Black, 2.0f);
+            spriteBatch.DrawLine(new Vector2(boardPos.X, boardPos.Y + (Assets.TileSpriteHeight * 4)), new Vector2(boardPos.X + (Assets.TileSpriteWidth * 4), boardPos.Y + (Assets.TileSpriteHeight * 4)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(new Vector2(boardPos.X + (Assets.TileSpriteWidth * 4), boardPos.Y), new Vector2(boardPos.X + (Assets.TileSpriteWidth * 4), boardPos.Y + (Assets.TileSpriteHeight * 4)), Color.Black, 2.0f);
+            drawSomeMoreStuff(spriteBatch); //all the extra draw commands (such as OverlayDraw, GameOverDraw, etc.) are called through here.
             spriteBatch.End();
 
             base.Draw(gameTime);
         }
 
         void OverlayDraw(SpriteBatch _spriteBatch) {
+            _spriteBatch.DrawRect(topHUDRect, Color.Orange);
             _spriteBatch.DrawString(Assets.daFont, "Score: " + gameBoard.Score, Vector2.Zero, Color.Black);
         }
 
         void GameOverDraw(SpriteBatch _spriteBatch) {
-            _spriteBatch.DrawString(Assets.daFont, "Game Over! Press R to try again", new Vector2(0,16), Color.Black);
+            _spriteBatch.DrawRect(popupRect, Color.Red, 2.0f);
+            _spriteBatch.DrawString(Assets.daFont, "Game Over! Press R to try again", new Vector2(popupRect.X,popupRect.Y), Color.Black);
         }
 
         void GoalDraw(SpriteBatch _spriteBatch) {
-            _spriteBatch.DrawString(Assets.daFont, "Congratulations! You made it to 2048! Press Space to remove this message or R to restart.", new Vector2(0, 16), Color.Black);
+            _spriteBatch.DrawRect(popupRect, Color.Lime, 2.0f);
+            _spriteBatch.DrawString(Assets.daFont, "Congratulations! You made it to 2048! Press Space to remove this message or R to restart.", new Vector2(popupRect.X, popupRect.Y), Color.Black);
+        }
+    }
+
+    public static class SpriteBatchExtender {
+        public static void DrawLine(this SpriteBatch _spriteBatch, Vector2 _pos1, Vector2 _pos2, Color _color, float _stroke) {
+            _spriteBatch.Draw(Assets.pixel, _pos1, null, _color, (float)Math.Atan2(_pos2.Y - _pos1.Y, _pos2.X - _pos1.X), new Vector2(0f, Assets.pixel.Height / 2), new Vector2(Vector2.Distance(_pos1, _pos2), _stroke), SpriteEffects.None, 0f);
+        }
+        public static void DrawRect(this SpriteBatch _spriteBatch, Rectangle _rect, Color _color) {
+            _spriteBatch.Draw(Assets.pixel, _rect, _color);
+        }
+        public static void DrawRect(this SpriteBatch _spriteBatch, Rectangle _rect, Color _color, float _lineStroke) {
+            _spriteBatch.Draw(Assets.pixel, _rect, _color);
+            _spriteBatch.DrawLine(_rect.Location(), new Vector2(_rect.X + _rect.Width, _rect.Y), Color.Black, _lineStroke);
+            _spriteBatch.DrawLine(new Vector2(_rect.X, _rect.Y + _rect.Height), new Vector2(_rect.X + _rect.Width, _rect.Y + _rect.Height), Color.Black, _lineStroke);
+        }
+    }
+
+    public static class RectangleExtender {
+        public static Vector2 Location(this Rectangle _rect) {
+            return new Vector2(_rect.X, _rect.Y);
         }
     }
 }

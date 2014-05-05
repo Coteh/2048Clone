@@ -1,25 +1,37 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace _2048Clone {
-    public class BoardHelper {
+    //public class BoardHelper {
 
-        //Array representing which numbers get tile colors
-        public static int[] tileTypeArr = { 2, 4, 8, 16, 32, 64, 128, 256 };
+    //}
 
-        public static int ConvertValueToIndex(int _value){
-            for (int i = 0; i < tileTypeArr.Length; i++) {
-                if (_value == tileTypeArr[i]) {
-                    return i;
-                }
-            }
-            return 0;
+    public class TileColorHolder {
+        private List<Tuple<int, Color>> colorList;
+
+        public TileColorHolder() {
+            colorList = new List<Tuple<int, Color>>();
         }
 
-        public static int ConvertIndexToValue(int _index) {
-            return tileTypeArr[_index];
+        public Color GetColor(int _tileValue) {
+            for (int i = 0; i < colorList.Count; i++) {
+                if (colorList[i].Item1 == _tileValue) { //if tile value already exists in the list
+                    return colorList[i].Item2; //return its color
+                }
+            }
+            //If no match has been found, create new color and save it to the list
+            Color newColor = TileColorHelper.CreateNewTileColor(_tileValue);
+            colorList.Add(new Tuple<int, Color>(_tileValue, newColor));
+            return newColor; //return the new color afterwards
+        }
+    }
+
+    public class TileColorHelper {
+        public static Color CreateNewTileColor(int _tileValue) {
+            return new Color(200 - _tileValue, 150 - _tileValue, 100 + _tileValue);
         }
     }
 }

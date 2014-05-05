@@ -72,11 +72,14 @@ namespace _2048Clone {
         /// </summary>
         protected override void Initialize() {
             inputHelper = InputHelper.Instance;
+            Assets.TileWidth = 128;
+            Assets.TileHeight = 128;
             Assets.pixel = new Texture2D(GraphicsDevice, 1, 1);
             Assets.pixel.SetData(new[] { Color.White });
             topHUDRect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 16);
             popupRect = new Rectangle(0, GraphicsDevice.Viewport.Height / 2, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 8);
             boardPos = new Vector2(GraphicsDevice.Viewport.Width / 8, GraphicsDevice.Viewport.Height / 8);
+            gameBoard = new GameBoard(boardPos);
             NewGame();
             updateMethod = GameUpdate;
             drawSomeMoreStuff = OverlayDraw;
@@ -86,7 +89,7 @@ namespace _2048Clone {
 
         void NewGame() {
             checkForGameOver = checkFor2048 = true;
-            gameBoard = new GameBoard(boardPos);
+            gameBoard.NewGame();
         }
 
         /// <summary>
@@ -97,12 +100,6 @@ namespace _2048Clone {
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            for (int i = 0; i < Assets.AMOUNT_OF_TILE_SPRITES; i++) {
-                //Load tile images into the static variables
-                Assets.TileImagesArr[i] = Content.Load<Texture2D>(@"" + Math.Pow(2,i + 1));
-            }
-            Assets.TileSpriteHeight = Assets.TileImagesArr[0].Width;
-            Assets.TileSpriteWidth = Assets.TileImagesArr[0].Height;
             Assets.daFont = Content.Load<SpriteFont>(@"Fonts/ComicSans");
         }
 
@@ -182,10 +179,10 @@ namespace _2048Clone {
 
             spriteBatch.Begin();
             gameBoard.Draw(spriteBatch);
-            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X, boardPos.Y + (Assets.TileSpriteHeight * 4)), Color.Black, 2.0f);
-            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X + (Assets.TileSpriteWidth * 4), boardPos.Y), Color.Black, 2.0f);
-            spriteBatch.DrawLine(new Vector2(boardPos.X, boardPos.Y + (Assets.TileSpriteHeight * 4)), new Vector2(boardPos.X + (Assets.TileSpriteWidth * 4), boardPos.Y + (Assets.TileSpriteHeight * 4)), Color.Black, 2.0f);
-            spriteBatch.DrawLine(new Vector2(boardPos.X + (Assets.TileSpriteWidth * 4), boardPos.Y), new Vector2(boardPos.X + (Assets.TileSpriteWidth * 4), boardPos.Y + (Assets.TileSpriteHeight * 4)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X, boardPos.Y + (Assets.TileHeight * 4)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X + (Assets.TileWidth * 4), boardPos.Y), Color.Black, 2.0f);
+            spriteBatch.DrawLine(new Vector2(boardPos.X, boardPos.Y + (Assets.TileHeight * 4)), new Vector2(boardPos.X + (Assets.TileWidth * 4), boardPos.Y + (Assets.TileHeight * 4)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(new Vector2(boardPos.X + (Assets.TileWidth * 4), boardPos.Y), new Vector2(boardPos.X + (Assets.TileWidth * 4), boardPos.Y + (Assets.TileHeight * 4)), Color.Black, 2.0f);
             drawSomeMoreStuff(spriteBatch); //all the extra draw commands (such as OverlayDraw, GameOverDraw, etc.) are called through here.
             spriteBatch.End();
 
@@ -219,6 +216,8 @@ namespace _2048Clone {
             _spriteBatch.Draw(Assets.pixel, _rect, _color);
             _spriteBatch.DrawLine(_rect.Location(), new Vector2(_rect.X + _rect.Width, _rect.Y), Color.Black, _lineStroke);
             _spriteBatch.DrawLine(new Vector2(_rect.X, _rect.Y + _rect.Height), new Vector2(_rect.X + _rect.Width, _rect.Y + _rect.Height), Color.Black, _lineStroke);
+            _spriteBatch.DrawLine(_rect.Location(), new Vector2(_rect.X, _rect.Y + +_rect.Height), Color.Black, _lineStroke);
+            _spriteBatch.DrawLine(new Vector2(_rect.X + _rect.Width, _rect.Y), new Vector2(_rect.X + _rect.Width, _rect.Y + _rect.Height), Color.Black, _lineStroke);
         }
     }
 

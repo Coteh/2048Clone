@@ -11,6 +11,9 @@ namespace _2048Clone {
         Vector2 position;
         float scale;
 
+        Rectangle[,] tilesRectArr;
+        TileColorHolder colorHolder;
+
         int score;
         bool isGameOver, isMoved, reached2048;
 
@@ -20,6 +23,9 @@ namespace _2048Clone {
         public readonly Vector2 LEFT = new Vector2(-1, 0);
 
         Random randy = new Random();
+
+        delegate void InitEvent();
+        InitEvent initEvent;
 
         public int Score {
             get { return score; }
@@ -34,15 +40,44 @@ namespace _2048Clone {
         }
 
         public GameBoard(Vector2 _pos) {
-            //GameBoard Initalization
-            board = new int[4,4];
+            //Initalizing other variables
             position = _pos;
+            //Assigning run once event
+            initEvent = RunOnce;
+            //All the game-related initalization has now moved to the NewGame method
+            NewGame();
+        }
+
+        public void NewGame() {
+            /*New game stuff goes here*/
+            //GameBoard Initalization
+            board = new int[4, 4];
             scale = 1.0f;
             score = 0;
             isGameOver = false;
             isMoved = false;
+            //Run the RunOnce event if it's set
+            if (initEvent != null) {
+                initEvent();
+            }
             //SPAWNING FIRST BLOCK
             SpawnNewBlock();
+        }
+
+        void RunOnce() {
+            /*Put initalization actions that only need to be run once after the gameboard is created
+             here*/
+            //Initalizing the tile rects
+            tilesRectArr = new Rectangle[board.GetLength(0), board.GetLength(1)];
+            for (int i = 0; i < board.GetLength(0); i++) {
+                for (int j = 0; j < board.GetLength(1); j++) {
+                    tilesRectArr[i, j] = new Rectangle((int)((i * (Assets.TileWidth * scale)) + position.X), (int)((j * (Assets.TileHeight * scale)) + position.Y), Assets.TileWidth, Assets.TileHeight);
+                }
+            }
+            //Initalizing tile color holder
+            colorHolder = new TileColorHolder();
+            //Remove itself from the initEvent delegate
+            initEvent -= RunOnce;
         }
 
         public void BeginMove(Vector2 _direction) {
@@ -360,9 +395,9 @@ namespace _2048Clone {
             //Determining random tile type
             int randomTileTypeChance = randy.Next(0,10); //0-4 will be a 2 block and 5-10 will be a 4 block
             if (randomTileTypeChance < 5){
-                board[randomX, randomY] = BoardHelper.tileTypeArr[0];
+                board[randomX, randomY] = 2;
             } else {
-                board[randomX, randomY] = BoardHelper.tileTypeArr[1];
+                board[randomX, randomY] = 4;
             }
             return;
         }
@@ -371,8 +406,8 @@ namespace _2048Clone {
             for (int i = 0; i < board.GetLength(0); i++) {
                 for (int j = 0; j < board.GetLength(1); j++) {
                     if (board[i, j] != 0) {
-                        _spriteBatch.Draw(Assets.TileImagesArr[BoardHelper.ConvertValueToIndex(board[i,j])], new Vector2((i * (Assets.TileSpriteWidth * scale)) + position.X, (j * (Assets.TileSpriteHeight * scale)) + position.Y), null, Color.White, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0);
-                        _spriteBatch.DrawString(Assets.daFont, "" + board[i, j], new Vector2((i * (Assets.TileSpriteWidth * scale)) + ((Assets.TileSpriteWidth * scale) / 3) + position.X, (j * (Assets.TileSpriteHeight * scale)) + ((Assets.TileSpriteHeight * scale) / 3) + position.Y), Color.Black);
+                        _spriteBatch.DrawRect(tilesRectArr[i, j], colorHolder.GetColor(board[i,j]), 1);
+                        _spriteBatch.DrawString(Assets.daFont, "" + board[i, j], new Vector2((i * (Assets.TileWidth * scale)) + ((Assets.TileWidth * scale) / 3) + position.X, (j * (Assets.TileHeight * scale)) + ((Assets.TileHeight * scale) / 3) + position.Y), Color.Black);
                     }
                 }
             }

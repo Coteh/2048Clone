@@ -3,7 +3,8 @@
 
 This is my attempt at making a 2048 clone using C# and MonoGame. Here's a screenshot of how the game looks currently:
 
-![Screenshot](screenshots/Screenshot2.png "Screenshot")
+![Screenshot](screenshots/Screenshot3.png "Screenshot")
+(note: Tile colors not final)
 To see screenshots of older versions, go [here](screenshots).
 
 License

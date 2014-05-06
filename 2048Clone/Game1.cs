@@ -28,28 +28,69 @@ namespace _2048Clone {
     /// Space to close some of the popup messages (such as the one when you get 2048)
     /// </summary>
     public class Game1 : Game {
+
+        public enum ScreenState { TitleScreen, InGame }
+
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
         InputHelper inputHelper;
+        ScreenState screenState;
+        ScreenState SetScreenState {
+            set {
+                screenState = value;
+                switch (screenState) {
+                    case ScreenState.TitleScreen:
+                        titleMenu = new Menu();
+                        titleMenu.SetPosition(new Vector2(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2));
+                        MenuButton playGameBtn, playBigGameBtn, exitGameBtn;
+                        playGameBtn.name = "Play 4x4 Game";
+                        playGameBtn.menuAction = StartRegularGame;
+                        playBigGameBtn.name = "Play 8x8 Game";
+                        playBigGameBtn.menuAction = StartBigGame;
+                        exitGameBtn.name = "Exit Game";
+                        exitGameBtn.menuAction = Exit;
+                        titleMenu.AddMultiple(new MenuButton[] { playGameBtn, playBigGameBtn, exitGameBtn });
+                        updateMethod = TitleScreenUpdate;
+                        drawCalls = TitleScreenDraw;
+                        break;
+                    case ScreenState.InGame:
+                        NewGame();
+                        updateMethod = GameUpdate;
+                        drawCalls = GameDraw;
+                        DrawCallEvent += OverlayDraw;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        Menu titleMenu;
 
         GameBoard gameBoard;
         Vector2 boardPos;
 
+        /*Game settings
+         THESE ARE SET WHEN STARTING A NEW GAME*/
+        int gridWidthToSet = 4, gridHeightToSet = 4;
+
+        /*GUI Elements*/
         Rectangle topHUDRect;
         Rectangle popupRect;
 
+        /*Condition checking*/
         bool checkForGameOver, checkFor2048;
 
-        delegate void AdditionalDraws(SpriteBatch _spriteBatch);
-        AdditionalDraws drawSomeMoreStuff;
-        event AdditionalDraws DrawSomeMoreStuff {
+        delegate void DrawCalls(SpriteBatch _spriteBatch);
+        DrawCalls drawCalls;
+        event DrawCalls DrawCallEvent {
             add {
-                if (drawSomeMoreStuff == null || !drawSomeMoreStuff.GetInvocationList().Contains(value)) {
-                    drawSomeMoreStuff += value;
+                if (drawCalls == null || !drawCalls.GetInvocationList().Contains(value)) {
+                    drawCalls += value;
                 }
             }
             remove {
-                drawSomeMoreStuff -= value;
+                drawCalls -= value;
             }
         }
 
@@ -71,25 +112,25 @@ namespace _2048Clone {
         /// and initialize them as well.
         /// </summary>
         protected override void Initialize() {
+            //Loading dependecies
             inputHelper = InputHelper.Instance;
-            Assets.TileWidth = 128;
-            Assets.TileHeight = 128;
+            Assets.TileWidth = 64;
+            Assets.TileHeight = 64;
             Assets.pixel = new Texture2D(GraphicsDevice, 1, 1);
             Assets.pixel.SetData(new[] { Color.White });
             topHUDRect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 16);
             popupRect = new Rectangle(0, GraphicsDevice.Viewport.Height / 2, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 8);
             boardPos = new Vector2(GraphicsDevice.Viewport.Width / 8, GraphicsDevice.Viewport.Height / 8);
             gameBoard = new GameBoard(boardPos);
-            NewGame();
-            updateMethod = GameUpdate;
-            drawSomeMoreStuff = OverlayDraw;
+            //Starting game at specified screen
+            SetScreenState = ScreenState.TitleScreen;
 
             base.Initialize();
         }
 
         void NewGame() {
             checkForGameOver = checkFor2048 = true;
-            gameBoard.NewGame();
+            gameBoard.NewGame(gridWidthToSet, gridHeightToSet);
         }
 
         /// <summary>
@@ -117,9 +158,7 @@ namespace _2048Clone {
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime) {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
-
+            inputHelper.Update();
             updateMethod();
 
             base.Update(gameTime);
@@ -131,8 +170,8 @@ namespace _2048Clone {
             //listens for game over
             if (checkForGameOver) {
                 if (gameBoard.IsGameOver) {
-                    DrawSomeMoreStuff -= GoalDraw; //remove the goal draw if it's there
-                    DrawSomeMoreStuff += GameOverDraw;
+                    DrawCallEvent -= GoalDraw; //remove the goal draw if it's there
+                    DrawCallEvent += GameOverDraw;
                     checkForGameOver = false;
                     checkFor2048 = false; //it's game over, so no point checking for 2048 anymore either
                     return;
@@ -141,33 +180,63 @@ namespace _2048Clone {
             //listens for 2048
             if (checkFor2048) {
                 if (gameBoard.Reached2048) {
-                    DrawSomeMoreStuff += GoalDraw;
+                    DrawCallEvent += GoalDraw;
                     checkFor2048 = false;
                 }
             }
         }
 
         void UpdateGameInput() {
-            inputHelper.Update();
-            if (inputHelper.CheckForKeyboardPress(Keys.Right)) {
+            if (inputHelper.CheckForKeyboardPress(Keys.Right) || inputHelper.CheckForGamepadPress(Buttons.DPadRight) || inputHelper.CheckForGamepadPress(Buttons.LeftThumbstickRight)) {
                 gameBoard.BeginMove(gameBoard.RIGHT);
-            } else if (inputHelper.CheckForKeyboardPress(Keys.Left)) {
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Left) || inputHelper.CheckForGamepadPress(Buttons.DPadLeft) || inputHelper.CheckForGamepadPress(Buttons.LeftThumbstickLeft)) {
                 gameBoard.BeginMove(gameBoard.LEFT);
-            } else if (inputHelper.CheckForKeyboardPress(Keys.Up)) {
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Up) || inputHelper.CheckForGamepadPress(Buttons.DPadUp) || inputHelper.CheckForGamepadPress(Buttons.LeftThumbstickUp)) {
                 gameBoard.BeginMove(gameBoard.UP);
-            } else if (inputHelper.CheckForKeyboardPress(Keys.Down)) {
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Down) || inputHelper.CheckForGamepadPress(Buttons.DPadDown) || inputHelper.CheckForGamepadPress(Buttons.LeftThumbstickDown)) {
                 gameBoard.BeginMove(gameBoard.DOWN);
-            } else if (inputHelper.CheckForKeyboardPress(Keys.R)) {
-                DrawSomeMoreStuff -= GameOverDraw;
+            } else if (inputHelper.CheckForKeyboardPress(Keys.R) || inputHelper.CheckForGamepadPress(Buttons.Y) 
+                || (inputHelper.CheckForGamepadHold(Buttons.LeftShoulder) && inputHelper.CheckForGamepadPress(Buttons.RightShoulder))) {
+                DrawCallEvent -= GameOverDraw;
                 if (gameBoard.Reached2048) {
-                    DrawSomeMoreStuff -= GoalDraw;
+                    DrawCallEvent -= GoalDraw;
                 }
                 NewGame();
             } else if (inputHelper.CheckForKeyboardPress(Keys.Space)) {
                 if (gameBoard.Reached2048) {
-                    DrawSomeMoreStuff -= GoalDraw;
+                    DrawCallEvent -= GoalDraw;
                 }
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Escape) || inputHelper.CheckForGamepadPress(Buttons.Back)) {
+                SetScreenState = ScreenState.TitleScreen;
             }
+        }
+
+        void TitleScreenUpdate() {
+            UpdateTitleScreenInput();
+        }
+
+        void UpdateTitleScreenInput() {
+            if (inputHelper.CheckForKeyboardPress(Keys.Enter) || inputHelper.CheckForGamepadPress(Buttons.Start) || inputHelper.CheckForGamepadPress(Buttons.A)) {
+                if (titleMenu.ListCount > 0) titleMenu.Select();
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Escape) || inputHelper.CheckForGamepadPress(Buttons.Back)) {
+                Exit();
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Down) || inputHelper.CheckForGamepadPress(Buttons.DPadDown)) {
+                titleMenu.Move(1);
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Up) || inputHelper.CheckForGamepadPress(Buttons.DPadUp)) {
+                titleMenu.Move(-1);
+            }
+        }
+
+        void StartRegularGame() {
+            gridWidthToSet = gridHeightToSet = 4;
+            Assets.TileWidth = Assets.TileHeight = 128;
+            SetScreenState = ScreenState.InGame;
+        }
+
+        void StartBigGame() {
+            gridWidthToSet = gridHeightToSet = 8;
+            Assets.TileWidth = Assets.TileHeight = 64;
+            SetScreenState = ScreenState.InGame;
         }
 
         /// <summary>
@@ -175,18 +244,26 @@ namespace _2048Clone {
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime) {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-
             spriteBatch.Begin();
-            gameBoard.Draw(spriteBatch);
-            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X, boardPos.Y + (Assets.TileHeight * 4)), Color.Black, 2.0f);
-            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X + (Assets.TileWidth * 4), boardPos.Y), Color.Black, 2.0f);
-            spriteBatch.DrawLine(new Vector2(boardPos.X, boardPos.Y + (Assets.TileHeight * 4)), new Vector2(boardPos.X + (Assets.TileWidth * 4), boardPos.Y + (Assets.TileHeight * 4)), Color.Black, 2.0f);
-            spriteBatch.DrawLine(new Vector2(boardPos.X + (Assets.TileWidth * 4), boardPos.Y), new Vector2(boardPos.X + (Assets.TileWidth * 4), boardPos.Y + (Assets.TileHeight * 4)), Color.Black, 2.0f);
-            drawSomeMoreStuff(spriteBatch); //all the extra draw commands (such as OverlayDraw, GameOverDraw, etc.) are called through here.
+            drawCalls(spriteBatch); //all the extra draw commands (such as OverlayDraw, GameOverDraw, etc.) are called through here.
             spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+
+        void TitleScreenDraw(SpriteBatch _spriteBatch) {
+            GraphicsDevice.Clear(Color.SeaGreen);
+            _spriteBatch.DrawString(Assets.daFont, "Welcome to 2048!", Vector2.Zero, Color.Black);
+            titleMenu.DrawMenu(_spriteBatch, Assets.daFont);
+        }
+
+        void GameDraw(SpriteBatch _spriteBatch) {
+            GraphicsDevice.Clear(Color.CornflowerBlue);
+            gameBoard.Draw(spriteBatch);
+            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X, boardPos.Y + (Assets.TileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X + (Assets.TileWidth * gameBoard.GetBoardWidth), boardPos.Y), Color.Black, 2.0f);
+            spriteBatch.DrawLine(new Vector2(boardPos.X, boardPos.Y + (Assets.TileHeight * gameBoard.GetBoardHeight)), new Vector2(boardPos.X + (Assets.TileWidth * gameBoard.GetBoardWidth), boardPos.Y + (Assets.TileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(new Vector2(boardPos.X + (Assets.TileWidth * gameBoard.GetBoardWidth), boardPos.Y), new Vector2(boardPos.X + (Assets.TileWidth * gameBoard.GetBoardWidth), boardPos.Y + (Assets.TileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
         }
 
         void OverlayDraw(SpriteBatch _spriteBatch) {

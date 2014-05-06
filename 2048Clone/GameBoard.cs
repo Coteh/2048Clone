@@ -12,6 +12,7 @@ namespace _2048Clone {
         float scale;
 
         Rectangle[,] tilesRectArr;
+        int tileWidth, tileHeight;
         TileColorHolder colorHolder;
 
         int score;
@@ -39,23 +40,36 @@ namespace _2048Clone {
             get { return reached2048; }
         }
 
+        public int GetBoardWidth {
+            get { return board.GetLength(0); }
+        }
+
+        public int GetBoardHeight {
+            get { return board.GetLength(1); }
+        }
+
         public GameBoard(Vector2 _pos) {
             //Initalizing other variables
             position = _pos;
             //Assigning run once event
             initEvent = RunOnce;
             //All the game-related initalization has now moved to the NewGame method
-            NewGame();
         }
 
-        public void NewGame() {
+        public void NewGame(int _width, int _height) {
             /*New game stuff goes here*/
             //GameBoard Initalization
-            board = new int[4, 4];
+            board = new int[_width, _height];
             scale = 1.0f;
             score = 0;
             isGameOver = false;
+            reached2048 = false;
             isMoved = false;
+            //We will initalize a new set of rectangles if the current dimensions are different
+            if (tilesRectArr == null || (board.GetLength(0) != tilesRectArr.GetLength(0) || board.GetLength(1) != tilesRectArr.GetLength(1)
+                || tileWidth != Assets.TileWidth || tileHeight != Assets.TileHeight)){
+                CalibrateRects();
+            }
             //Run the RunOnce event if it's set
             if (initEvent != null) {
                 initEvent();
@@ -67,17 +81,21 @@ namespace _2048Clone {
         void RunOnce() {
             /*Put initalization actions that only need to be run once after the gameboard is created
              here*/
-            //Initalizing the tile rects
-            tilesRectArr = new Rectangle[board.GetLength(0), board.GetLength(1)];
-            for (int i = 0; i < board.GetLength(0); i++) {
-                for (int j = 0; j < board.GetLength(1); j++) {
-                    tilesRectArr[i, j] = new Rectangle((int)((i * (Assets.TileWidth * scale)) + position.X), (int)((j * (Assets.TileHeight * scale)) + position.Y), Assets.TileWidth, Assets.TileHeight);
-                }
-            }
             //Initalizing tile color holder
             colorHolder = new TileColorHolder();
             //Remove itself from the initEvent delegate
             initEvent -= RunOnce;
+        }
+
+        void CalibrateRects() {
+            tilesRectArr = new Rectangle[board.GetLength(0), board.GetLength(1)];
+            tileWidth = Assets.TileWidth;
+            tileHeight = Assets.TileHeight;
+            for (int i = 0; i < board.GetLength(0); i++) {
+                for (int j = 0; j < board.GetLength(1); j++) {
+                    tilesRectArr[i, j] = new Rectangle((int)((i * (tileWidth * scale)) + position.X), (int)((j * (tileHeight * scale)) + position.Y), tileWidth, tileHeight);
+                }
+            }
         }
 
         public void BeginMove(Vector2 _direction) {
@@ -203,7 +221,7 @@ namespace _2048Clone {
             for (int i = colStart; (i >= colEnd && increment < 0) || (i <= colEnd && increment > 0); i += increment) { //start from the very right that isn't touching a wall
                 if (!IsEmptySpace(board[_colIndex, i])) {
                     int dist = 0;
-                    for (int d = 0; (i + (d * _direction.Y) + (_direction.Y) <= board.GetLength(0) - 1
+                    for (int d = 0; (i + (d * _direction.Y) + (_direction.Y) <= board.GetLength(1) - 1
                         && i + (d * _direction.Y) + (_direction.Y) >= 0)
                         && d < board.GetLength(0) - 1
                         && IsEmptySpace(board[_colIndex, i + (d * (int)_direction.Y) + ((int)_direction.Y)]); d++) {
@@ -407,7 +425,7 @@ namespace _2048Clone {
                 for (int j = 0; j < board.GetLength(1); j++) {
                     if (board[i, j] != 0) {
                         _spriteBatch.DrawRect(tilesRectArr[i, j], colorHolder.GetColor(board[i,j]), 1);
-                        _spriteBatch.DrawString(Assets.daFont, "" + board[i, j], new Vector2((i * (Assets.TileWidth * scale)) + ((Assets.TileWidth * scale) / 3) + position.X, (j * (Assets.TileHeight * scale)) + ((Assets.TileHeight * scale) / 3) + position.Y), Color.Black);
+                        _spriteBatch.DrawString(Assets.daFont, "" + board[i, j], new Vector2((i * (tileWidth * scale)) + ((tileWidth * scale) / 3) + position.X, (j * (tileHeight * scale)) + ((tileHeight * scale) / 3) + position.Y), Color.Black);
                     }
                 }
             }

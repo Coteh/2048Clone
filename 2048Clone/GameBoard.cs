@@ -6,17 +6,23 @@ using System.Linq;
 using System.Text;
 
 namespace _2048Clone {
+    public enum GameMode { Twos = 1, Threes = 2 }
+
+    public struct GameBoardConfig {
+        public int gridWidth, gridHeight, tileWidth, tileHeight;
+        public GameMode gameMode;
+    }
+
     public class GameBoard {
         int[,] board;
         Vector2 position;
         float scale;
-
+        GameBoardConfig boardConfig;
         Rectangle[,] tilesRectArr;
-        int tileWidth, tileHeight;
         TileColorHolder colorHolder;
 
         int score;
-        bool isGameOver, isMoved, reached2048;
+        bool isGameOver, isMoved, reached2048, reached3072;
 
         public readonly Vector2 UP = new Vector2(0, -1);
         public readonly Vector2 DOWN = new Vector2(0, 1);
@@ -40,6 +46,10 @@ namespace _2048Clone {
             get { return reached2048; }
         }
 
+        public bool Reached3072 {
+            get { return reached3072; }
+        }
+
         public int GetBoardWidth {
             get { return board.GetLength(0); }
         }
@@ -56,20 +66,24 @@ namespace _2048Clone {
             //All the game-related initalization has now moved to the NewGame method
         }
 
-        public void NewGame(int _width, int _height) {
+        public void NewGame(GameBoardConfig _config) {
             /*New game stuff goes here*/
             //GameBoard Initalization
-            board = new int[_width, _height];
-            scale = 1.0f;
+            //First we will check to see if the board config we were given is different than the one we have
+            if (!_config.Equals(boardConfig)) {
+                //If it is different, then let's create a new board
+                boardConfig = _config;
+                board = new int[boardConfig.gridWidth, boardConfig.gridHeight];
+                scale = 1.0f;
+                CalibrateRects(_config);
+            } else {
+                //If they are the same, then nothing needs to be recreated. Let's just wipe the board clean
+                WipeBoard();
+            }
             score = 0;
             isGameOver = false;
-            reached2048 = false;
+            reached2048 = reached3072 = false;
             isMoved = false;
-            //We will initalize a new set of rectangles if the current dimensions are different
-            if (tilesRectArr == null || (board.GetLength(0) != tilesRectArr.GetLength(0) || board.GetLength(1) != tilesRectArr.GetLength(1)
-                || tileWidth != Assets.TileWidth || tileHeight != Assets.TileHeight)){
-                CalibrateRects();
-            }
             //Run the RunOnce event if it's set
             if (initEvent != null) {
                 initEvent();
@@ -87,13 +101,19 @@ namespace _2048Clone {
             initEvent -= RunOnce;
         }
 
-        void CalibrateRects() {
-            tilesRectArr = new Rectangle[board.GetLength(0), board.GetLength(1)];
-            tileWidth = Assets.TileWidth;
-            tileHeight = Assets.TileHeight;
+        void WipeBoard() {
             for (int i = 0; i < board.GetLength(0); i++) {
                 for (int j = 0; j < board.GetLength(1); j++) {
-                    tilesRectArr[i, j] = new Rectangle((int)((i * (tileWidth * scale)) + position.X), (int)((j * (tileHeight * scale)) + position.Y), tileWidth, tileHeight);
+                    board[i, j] = 0;
+                }
+            }
+        }
+
+        void CalibrateRects(GameBoardConfig _config) {
+            tilesRectArr = new Rectangle[board.GetLength(0), board.GetLength(1)];
+            for (int i = 0; i < board.GetLength(0); i++) {
+                for (int j = 0; j < board.GetLength(1); j++) {
+                    tilesRectArr[i, j] = new Rectangle((int)((i * (boardConfig.tileWidth * scale)) + position.X), (int)((j * (boardConfig.tileHeight * scale)) + position.Y), boardConfig.tileWidth, boardConfig.tileHeight);
                 }
             }
         }
@@ -387,6 +407,8 @@ namespace _2048Clone {
             score += _block1;
             if (_block1 == 2048) { //if this block is 2048
                 reached2048 = true; //we've reached 2048!
+            } else if (_block1 == 3072) { //else if the block is 3072
+                reached3072 = true;
             }
             isMoved = true; //if we only merged a block and not moved anything, this will let the random block generator spawn a block
         }
@@ -413,9 +435,9 @@ namespace _2048Clone {
             //Determining random tile type
             int randomTileTypeChance = randy.Next(0,10); //0-4 will be a 2 block and 5-10 will be a 4 block
             if (randomTileTypeChance < 5){
-                board[randomX, randomY] = 2;
+                board[randomX, randomY] = BoardHelper.GenerateNewBlock(boardConfig.gameMode, 0);
             } else {
-                board[randomX, randomY] = 4;
+                board[randomX, randomY] = BoardHelper.GenerateNewBlock(boardConfig.gameMode, 1);
             }
             return;
         }
@@ -425,7 +447,7 @@ namespace _2048Clone {
                 for (int j = 0; j < board.GetLength(1); j++) {
                     if (board[i, j] != 0) {
                         _spriteBatch.DrawRect(tilesRectArr[i, j], colorHolder.GetColor(board[i,j]), 1);
-                        _spriteBatch.DrawString(Assets.daFont, "" + board[i, j], new Vector2((i * (tileWidth * scale)) + ((tileWidth * scale) / 3) + position.X, (j * (tileHeight * scale)) + ((tileHeight * scale) / 3) + position.Y), Color.Black);
+                        _spriteBatch.DrawString(Assets.daFont, "" + board[i, j], new Vector2((i * (boardConfig.tileWidth * scale)) + ((boardConfig.tileWidth * scale) / 3) + position.X, (j * (boardConfig.tileHeight * scale)) + ((boardConfig.tileHeight * scale) / 3) + position.Y), Color.Black);
                     }
                 }
             }

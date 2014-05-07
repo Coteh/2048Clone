@@ -8,8 +8,6 @@ namespace _2048Clone {
     public class Assets {
         public static Texture2D pixel;
 
-        public static int TileWidth, TileHeight;
-
         public static SpriteFont daFont;
     }
 }

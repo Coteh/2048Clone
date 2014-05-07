@@ -6,6 +6,8 @@ using System.Text;
 
 namespace _2048Clone {
     public class BoardHelper {
+        private static Random randy = new Random();
+
         /// <summary>
         /// Generates a new block depending on the game mode
         /// </summary>
@@ -15,9 +17,7 @@ namespace _2048Clone {
         public static int GenerateNewBlock(GameMode _gameMode, int _blockType) {
             //Depending on the game mode, we will generate the appropriate block
             int splitChance = -1; //if on both Twos and Threes mode at the same time, we will use this to generate a block from either set
-            Random randy;
             if (_gameMode == (GameMode.Threes | GameMode.Twos)) {
-                randy = new Random(); //create the random object here because this is the only time we're going to use it in this method
                 splitChance = randy.Next(0,10); //0-4 will be a block from Twos and 5-10 will be a block from Threes
             }
             if (_gameMode == GameMode.Twos || (splitChance >= 0 && splitChance < 5)) {

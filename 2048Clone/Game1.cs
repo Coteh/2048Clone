@@ -40,20 +40,6 @@ namespace _2048Clone {
                 screenState = value;
                 switch (screenState) {
                     case ScreenState.TitleScreen:
-                        titleMenu = new Menu();
-                        titleMenu.SetPosition(new Vector2(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2));
-                        MenuButton playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, exitGameBtn;
-                        playGameBtn.name = "Play 4x4 Game";
-                        playGameBtn.menuAction = StartRegularGame;
-                        playBigGameBtn.name = "Play 8x8 Game";
-                        playBigGameBtn.menuAction = StartBigGame;
-                        playThreesBtn.name = "Play 3s Game (3072)";
-                        playThreesBtn.menuAction = StartThreesGame;
-                        playDuoButton.name = "Play Duo 2s and 3s Game";
-                        playDuoButton.menuAction = StartDuoGame;
-                        exitGameBtn.name = "Exit Game";
-                        exitGameBtn.menuAction = Exit;
-                        titleMenu.AddMultiple(new MenuButton[] { playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, exitGameBtn });
                         updateMethod = TitleScreenUpdate;
                         drawCalls = TitleScreenDraw;
                         break;
@@ -69,7 +55,7 @@ namespace _2048Clone {
             }
         }
 
-        Menu titleMenu;
+        Menu titleMenu, pauseMenu;
 
         GameBoard gameBoard;
         Vector2 boardPos;
@@ -122,8 +108,32 @@ namespace _2048Clone {
             Assets.pixel.SetData(new[] { Color.White });
             topHUDRect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 16);
             popupRect = new Rectangle(0, GraphicsDevice.Viewport.Height / 2, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 8);
-            boardPos = new Vector2(GraphicsDevice.Viewport.Width / 8, GraphicsDevice.Viewport.Height / 8);
+            boardPos = new Vector2(GraphicsDevice.Viewport.Width / 16, GraphicsDevice.Viewport.Height / 8);
             gameBoard = new GameBoard(boardPos);
+            //Loading title screen menu
+            titleMenu = new Menu();
+            titleMenu.SetPosition(new Vector2((GraphicsDevice.Viewport.Width / 2) - (GraphicsDevice.Viewport.Width / 8), GraphicsDevice.Viewport.Height / 2));
+            MenuButton playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, exitGameBtn;
+            playGameBtn.name = "Play 4x4 Game";
+            playGameBtn.menuAction = StartRegularGame;
+            playBigGameBtn.name = "Play 8x8 Game";
+            playBigGameBtn.menuAction = StartBigGame;
+            playThreesBtn.name = "Play 3s Game (3072)";
+            playThreesBtn.menuAction = StartThreesGame;
+            playDuoButton.name = "Play Duo 2s and 3s Game";
+            playDuoButton.menuAction = StartDuoGame;
+            exitGameBtn.name = "Exit Game";
+            exitGameBtn.menuAction = Exit;
+            titleMenu.AddMultiple(new MenuButton[] { playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, exitGameBtn });
+            //Loading pause menu
+            pauseMenu = new Menu();
+            pauseMenu.SetPosition(new Vector2(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2));
+            MenuButton resumeBtn, returnBtn;
+            resumeBtn.name = "Resume";
+            resumeBtn.menuAction = HidePauseMenu;
+            returnBtn.name = "Return to Title";
+            returnBtn.menuAction = ReturnToTitleScreen;
+            pauseMenu.AddMultiple(new MenuButton[] { resumeBtn, returnBtn });
             //Starting game at specified screen
             SetScreenState = ScreenState.TitleScreen;
 
@@ -222,7 +232,9 @@ namespace _2048Clone {
                 DrawCallEvent -= GoalDraw2048;
                 DrawCallEvent -= GoalDraw3072;
             } else if (inputHelper.CheckForKeyboardPress(Keys.Escape) || inputHelper.CheckForGamepadPress(Buttons.Back)) {
-                SetScreenState = ScreenState.TitleScreen;
+                ReturnToTitleScreen();
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Enter) || inputHelper.CheckForGamepadPress(Buttons.Start)) {
+                ShowPauseMenu();
             }
         }
 
@@ -231,17 +243,36 @@ namespace _2048Clone {
         }
 
         void UpdateTitleScreenInput() {
-            if (titleMenu.Update(inputHelper.GetMousePosition(), inputHelper.CheckForLeftRelease())) {
+            if (titleMenu.Update(inputHelper.GetMousePosition(), inputHelper.CheckForLeftHold(), inputHelper.CheckForLeftRelease())) {
                 titleMenu.Select();
             }
             if (inputHelper.CheckForKeyboardPress(Keys.Enter) || inputHelper.CheckForGamepadPress(Buttons.Start) || inputHelper.CheckForGamepadPress(Buttons.A)) {
-                if (titleMenu.ListCount > 0) titleMenu.Select();
+                titleMenu.Select();
             } else if (inputHelper.CheckForKeyboardPress(Keys.Escape) || inputHelper.CheckForGamepadPress(Buttons.Back)) {
                 Exit();
             } else if (inputHelper.CheckForKeyboardPress(Keys.Down) || inputHelper.CheckForGamepadPress(Buttons.DPadDown)) {
                 titleMenu.Move(1);
             } else if (inputHelper.CheckForKeyboardPress(Keys.Up) || inputHelper.CheckForGamepadPress(Buttons.DPadUp)) {
                 titleMenu.Move(-1);
+            }
+        }
+
+        void PauseMenuUpdate() {
+            UpdatePauseMenuInput();
+        }
+
+        void UpdatePauseMenuInput() {
+            if (pauseMenu.Update(inputHelper.GetMousePosition(), inputHelper.CheckForLeftHold(), inputHelper.CheckForLeftRelease())) {
+                pauseMenu.Select();
+            }
+            if (inputHelper.CheckForKeyboardPress(Keys.Enter) || inputHelper.CheckForGamepadPress(Buttons.Start) || inputHelper.CheckForGamepadPress(Buttons.A)) {
+                pauseMenu.Select();
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Down) || inputHelper.CheckForGamepadPress(Buttons.DPadDown)) {
+                pauseMenu.Move(1);
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Up) || inputHelper.CheckForGamepadPress(Buttons.DPadUp)) {
+                pauseMenu.Move(-1);
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Escape) || inputHelper.CheckForGamepadPress(Buttons.Back)) {
+                ReturnToTitleScreen();
             }
         }
 
@@ -271,6 +302,20 @@ namespace _2048Clone {
             gameBoardConfig.tileWidth = gameBoardConfig.tileHeight = 80;
             gameBoardConfig.gameMode = GameMode.Twos | GameMode.Threes;
             SetScreenState = ScreenState.InGame;
+        }
+
+        void ShowPauseMenu() {
+            DrawCallEvent += PauseDraw;
+            updateMethod = PauseMenuUpdate;
+        }
+
+        void HidePauseMenu() {
+            DrawCallEvent -= PauseDraw;
+            updateMethod = GameUpdate;
+        }
+
+        void ReturnToTitleScreen() {
+            SetScreenState = ScreenState.TitleScreen;
         }
 
         /// <summary>
@@ -318,6 +363,10 @@ namespace _2048Clone {
         void GoalDraw3072(SpriteBatch _spriteBatch) {
             _spriteBatch.DrawRect(popupRect, Color.DeepSkyBlue, 2.0f);
             _spriteBatch.DrawString(Assets.daFont, "Congratulations! You made it to 3072! Press Space to remove this message or R to restart.", new Vector2(popupRect.X, popupRect.Y), Color.White);
+        }
+
+        void PauseDraw(SpriteBatch _spriteBatch) {
+            pauseMenu.DrawMenu(_spriteBatch, Assets.daFont);
         }
     }
 

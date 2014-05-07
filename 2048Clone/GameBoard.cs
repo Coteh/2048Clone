@@ -90,6 +90,10 @@ namespace _2048Clone {
             }
             //SPAWNING FIRST BLOCK
             SpawnNewBlock();
+            SpawnNewBlock();
+            if (boardConfig.gameMode == GameMode.Threes) {
+                SpawnNewBlock();
+            }
         }
 
         void RunOnce() {

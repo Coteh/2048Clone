@@ -1,9 +1,9 @@
-2048Clone
+![Screenshot](2048Clone/Content/Images/Logo.png "2048Clone")
 =========
 
 This is my attempt at making a 2048 clone using C# and MonoGame. Here's a screenshot of how the game looks currently:
 
-![Screenshot](screenshots/Screenshot3.png "Screenshot")
+![Screenshot](screenshots/Screenshot4.png "Screenshot")![Screenshot](screenshots/Screenshot5.png "Screenshot")
 (note: Tile colors not final)
 To see screenshots of older versions, go [here](screenshots).
 

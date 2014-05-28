@@ -6,11 +6,17 @@ using System.Linq;
 using System.Text;
 
 namespace _2048Clone {
-    public enum GameMode { Twos = 1, Threes = 2 }
+    public enum GameModeState { Twos = 1, Threes = 2 }
 
     public struct GameBoardConfig {
         public int gridWidth, gridHeight, tileWidth, tileHeight;
-        public GameMode gameMode;
+        public GameModeState gameMode;
+    }
+
+    public struct GameBoardMode {
+        public string name;
+        public GameBoardConfig boardConfig;
+        public int highScore;
     }
 
     public class GameBoard {
@@ -21,7 +27,7 @@ namespace _2048Clone {
         Rectangle[,] tilesRectArr;
         TileColorHolder colorHolder;
 
-        int score;
+        int score, highscore;
         bool isGameOver, isMoved, reached2048, reached3072;
 
         public readonly Vector2 UP = new Vector2(0, -1);
@@ -36,6 +42,10 @@ namespace _2048Clone {
 
         public int Score {
             get { return score; }
+        }
+
+        public int HighScore {
+            get { return highscore; }
         }
 
         public bool IsGameOver {
@@ -66,20 +76,21 @@ namespace _2048Clone {
             //All the game-related initalization has now moved to the NewGame method
         }
 
-        public void NewGame(GameBoardConfig _config) {
+        public void NewGame(GameBoardMode _mode) {
             /*New game stuff goes here*/
             //GameBoard Initalization
             //First we will check to see if the board config we were given is different than the one we have
-            if (!_config.Equals(boardConfig)) {
+            if (!_mode.boardConfig.Equals(boardConfig)) {
                 //If it is different, then let's create a new board
-                boardConfig = _config;
+                boardConfig = _mode.boardConfig;
                 board = new int[boardConfig.gridWidth, boardConfig.gridHeight];
                 scale = 1.0f;
-                CalibrateRects(_config);
+                CalibrateRects(_mode.boardConfig);
             } else {
                 //If they are the same, then nothing needs to be recreated. Let's just wipe the board clean
                 WipeBoard();
             }
+            highscore = _mode.highScore;
             score = 0;
             isGameOver = false;
             reached2048 = reached3072 = false;
@@ -91,7 +102,7 @@ namespace _2048Clone {
             //SPAWNING FIRST BLOCK
             SpawnNewBlock();
             SpawnNewBlock();
-            if (boardConfig.gameMode == GameMode.Threes) {
+            if (boardConfig.gameMode == GameModeState.Threes) {
                 SpawnNewBlock();
             }
         }
@@ -100,7 +111,7 @@ namespace _2048Clone {
             /*Put initalization actions that only need to be run once after the gameboard is created
              here*/
             //Initalizing tile color holder
-            colorHolder = new TileColorHolder();
+            colorHolder = TileColorHolder.Instance;
             //Remove itself from the initEvent delegate
             initEvent -= RunOnce;
         }
@@ -409,6 +420,9 @@ namespace _2048Clone {
             _block1 += _block2;
             _block2 = 0;
             score += _block1;
+            if (score > highscore) { //if player exceeded highscore
+                highscore += _block1; //add to highscore as well
+            }
             if (_block1 == 2048) { //if this block is 2048
                 reached2048 = true; //we've reached 2048!
             } else if (_block1 == 3072) { //else if the block is 3072

@@ -34,6 +34,7 @@ namespace _2048Clone {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
         InputHelper inputHelper;
+        GameSaver gameSaver;
         ScreenState screenState;
         ScreenState SetScreenState {
             set {
@@ -42,12 +43,15 @@ namespace _2048Clone {
                     case ScreenState.TitleScreen:
                         updateMethod = TitleScreenUpdate;
                         drawCalls = TitleScreenDraw;
+                        UpdateEvent += UpdateTitleMenuInput;
+                        menuDraw = titleMenu.DrawMenu;
                         break;
                     case ScreenState.InGame:
                         NewGame();
                         updateMethod = GameUpdate;
                         drawCalls = GameDraw;
                         DrawCallEvent += OverlayDraw;
+                        menuDraw = null;
                         break;
                     default:
                         break;
@@ -55,14 +59,18 @@ namespace _2048Clone {
             }
         }
 
-        Menu titleMenu, pauseMenu;
+        Menu titleMenu, pauseMenu, settingsMenu;
+        TileColorHolder colorHolder;
 
         GameBoard gameBoard;
         Vector2 boardPos;
 
         /*Game settings
          THESE ARE SET WHEN STARTING A NEW GAME*/
-        GameBoardConfig gameBoardConfig;
+        const int AMOUNT_OF_GAME_MODES = 4;
+        GameBoardMode[] gameModeArr;
+        int selectedModeIndex;
+        int tileHeight, tileWidth;
 
         /*GUI Elements*/
         Rectangle topHUDRect;
@@ -70,6 +78,12 @@ namespace _2048Clone {
 
         /*Condition checking*/
         bool checkForGameOver, checkFor2048, checkFor3072;
+
+        /*Checkerboard background*/
+        const int CHECKERBOARD_TILE_SIZE = 32;
+
+        /*Misc.*/
+        Texture2D gameLogo;
 
         delegate void DrawCalls(SpriteBatch _spriteBatch);
         DrawCalls drawCalls;
@@ -86,6 +100,29 @@ namespace _2048Clone {
 
         delegate void UpdateMode();
         UpdateMode updateMethod;
+        event UpdateMode UpdateEvent {
+            add {
+                if (updateMethod == null || !updateMethod.GetInvocationList().Contains(value)) {
+                    updateMethod += value;
+                }
+            }
+            remove {
+                updateMethod -= value;
+            }
+        }
+
+        delegate void MenuDraw(SpriteBatch _spriteBatch, SpriteFont _font);
+        MenuDraw menuDraw;
+        event MenuDraw MenuDrawEvent {
+            add {
+                if (menuDraw == null || !menuDraw.GetInvocationList().Contains(value)) {
+                    menuDraw += value;
+                }
+            }
+            remove {
+                menuDraw -= value;
+            }
+        }
 
         public Game1()
             : base() {
@@ -104,16 +141,39 @@ namespace _2048Clone {
         protected override void Initialize() {
             //Loading dependecies
             inputHelper = InputHelper.Instance;
+            gameSaver = GameSaver.Instance;
             Assets.pixel = new Texture2D(GraphicsDevice, 1, 1);
             Assets.pixel.SetData(new[] { Color.White });
             topHUDRect = new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 16);
             popupRect = new Rectangle(0, GraphicsDevice.Viewport.Height / 2, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height / 8);
             boardPos = new Vector2(GraphicsDevice.Viewport.Width / 16, GraphicsDevice.Viewport.Height / 8);
             gameBoard = new GameBoard(boardPos);
+            //Loading game modes
+            gameModeArr = new GameBoardMode[AMOUNT_OF_GAME_MODES];
+            gameModeArr[0].name = "4x4";
+            gameModeArr[0].boardConfig.gridWidth = gameModeArr[0].boardConfig.gridHeight = 4;
+            gameModeArr[0].boardConfig.tileWidth = gameModeArr[0].boardConfig.tileHeight = 128;
+            gameModeArr[0].boardConfig.gameMode = GameModeState.Twos;
+            gameModeArr[1].name = "8x8";
+            gameModeArr[1].boardConfig.gridWidth = gameModeArr[1].boardConfig.gridHeight = 8;
+            gameModeArr[1].boardConfig.tileWidth = gameModeArr[1].boardConfig.tileHeight = 64;
+            gameModeArr[1].boardConfig.gameMode = GameModeState.Twos;
+            gameModeArr[2].name = "3s (3072) - 4x4";
+            gameModeArr[2].boardConfig.gridWidth = gameModeArr[2].boardConfig.gridHeight = 4;
+            gameModeArr[2].boardConfig.tileWidth = gameModeArr[2].boardConfig.tileHeight = 128;
+            gameModeArr[2].boardConfig.gameMode = GameModeState.Threes;
+            gameModeArr[3].name = "Duo 2s and 3s - 6x6";
+            gameModeArr[3].boardConfig.gridWidth = gameModeArr[3].boardConfig.gridHeight = 6;
+            gameModeArr[3].boardConfig.tileWidth = gameModeArr[3].boardConfig.tileHeight = 80;
+            gameModeArr[3].boardConfig.gameMode = GameModeState.Twos | GameModeState.Threes;
+            int[] highScoresLoaded = gameSaver.ReadHighscores(AMOUNT_OF_GAME_MODES);
+            for (int i = 0; i < AMOUNT_OF_GAME_MODES; i++) {
+                gameModeArr[i].highScore = highScoresLoaded[i];
+            }
             //Loading title screen menu
             titleMenu = new Menu();
-            titleMenu.SetPosition(new Vector2((GraphicsDevice.Viewport.Width / 2) - (GraphicsDevice.Viewport.Width / 8), GraphicsDevice.Viewport.Height / 2));
-            MenuButton playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, exitGameBtn;
+            titleMenu.SetPosition(new Vector2((GraphicsDevice.Viewport.Width / 2) - (GraphicsDevice.Viewport.Width / 8), (GraphicsDevice.Viewport.Height / 2) + (GraphicsDevice.Viewport.Height / 6)));
+            MenuButton playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, settingsBtn, exitGameBtn;
             playGameBtn.name = "Play 4x4 Game";
             playGameBtn.menuAction = StartRegularGame;
             playBigGameBtn.name = "Play 8x8 Game";
@@ -122,18 +182,45 @@ namespace _2048Clone {
             playThreesBtn.menuAction = StartThreesGame;
             playDuoButton.name = "Play Duo 2s and 3s Game";
             playDuoButton.menuAction = StartDuoGame;
+            settingsBtn.name = "Settings";
+            settingsBtn.menuAction = GoToSettings;
             exitGameBtn.name = "Exit Game";
             exitGameBtn.menuAction = Exit;
-            titleMenu.AddMultiple(new MenuButton[] { playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, exitGameBtn });
+            titleMenu.AddMultiple(new MenuButton[] { playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, settingsBtn, exitGameBtn });
             //Loading pause menu
             pauseMenu = new Menu();
-            pauseMenu.SetPosition(new Vector2(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2));
+            pauseMenu.SetPosition(new Vector2((GraphicsDevice.Viewport.Width / 2) - (GraphicsDevice.Viewport.Width / 8), GraphicsDevice.Viewport.Height / 2));
+            pauseMenu.SetTitle("PAUSED");
             MenuButton resumeBtn, returnBtn;
             resumeBtn.name = "Resume";
             resumeBtn.menuAction = HidePauseMenu;
             returnBtn.name = "Return to Title";
             returnBtn.menuAction = ReturnToTitleScreen;
             pauseMenu.AddMultiple(new MenuButton[] { resumeBtn, returnBtn });
+            //Creating tile color sets
+            TileColorSet modern, classic, colorful;
+            modern.name = "Modern";
+            modern.colorAction = TileColorHelper.CreateModernColors;
+            classic.name = "Classic";
+            classic.colorAction = TileColorHelper.CreateClassicColors;
+            colorful.name = "Colorful";
+            colorful.colorAction = TileColorHelper.CreateColorfulColors;
+            colorHolder = TileColorHolder.Instance;
+            colorHolder.AddTileColorSet(modern);
+            colorHolder.AddTileColorSet(classic);
+            colorHolder.AddTileColorSet(colorful);
+            //Loading settings menu
+            settingsMenu = new Menu();
+            settingsMenu.SetPosition(new Vector2((GraphicsDevice.Viewport.Width / 2) - (GraphicsDevice.Viewport.Width / 8), (GraphicsDevice.Viewport.Height / 2) + (GraphicsDevice.Viewport.Height / 4)));
+            settingsMenu.SetTitle("Settings");
+            MenuButton tileColorBtn, clearHighscoresBtn, backBtn;
+            tileColorBtn.name = "Change Tile Color Theme -%o-";
+            tileColorBtn.menuAction = colorHolder.GoToNextTileColorSet;
+            clearHighscoresBtn.name = "Clear High Scores";
+            clearHighscoresBtn.menuAction = ClearHighscores;
+            backBtn.name = "Back";
+            backBtn.menuAction = ReturnToTitleScreen;
+            settingsMenu.AddMultiple(new MenuButton[] { tileColorBtn, clearHighscoresBtn, backBtn });
             //Starting game at specified screen
             SetScreenState = ScreenState.TitleScreen;
 
@@ -142,14 +229,14 @@ namespace _2048Clone {
 
         void NewGame() {
             checkForGameOver = true;
-            if (gameBoardConfig.gameMode == GameMode.Twos) {
+            if (gameModeArr[selectedModeIndex].boardConfig.gameMode == GameModeState.Twos) {
                 checkFor2048 = true;
-            } else if (gameBoardConfig.gameMode == GameMode.Threes) {
+            } else if (gameModeArr[selectedModeIndex].boardConfig.gameMode == GameModeState.Threes) {
                 checkFor3072 = true;
-            } else if (gameBoardConfig.gameMode == (GameMode.Twos | GameMode.Threes)) {
+            } else if (gameModeArr[selectedModeIndex].boardConfig.gameMode == (GameModeState.Twos | GameModeState.Threes)) {
                 checkFor2048 = checkFor3072 = true;
             }
-            gameBoard.NewGame(gameBoardConfig);
+            gameBoard.NewGame(gameModeArr[selectedModeIndex]);
         }
 
         /// <summary>
@@ -161,6 +248,8 @@ namespace _2048Clone {
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
             Assets.daFont = Content.Load<SpriteFont>(@"Fonts/ComicSans");
+
+            gameLogo = Content.Load<Texture2D>(@"Images/Logo");
         }
 
         /// <summary>
@@ -178,8 +267,7 @@ namespace _2048Clone {
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime) {
             inputHelper.Update();
-            updateMethod();
-
+            if (updateMethod != null) updateMethod();
             base.Update(gameTime);
         }
 
@@ -192,6 +280,14 @@ namespace _2048Clone {
                     DrawCallEvent -= GoalDraw2048; //remove the 2048 goal draw if it's there
                     DrawCallEvent -= GoalDraw3072; //remove the 3072 goal draw if it's there
                     DrawCallEvent += GameOverDraw;
+                    if (gameBoard.HighScore > gameModeArr[selectedModeIndex].highScore) { //if user got a new highscore
+                        gameModeArr[selectedModeIndex].highScore = gameBoard.HighScore; //save the new highscore to the appropriate struct
+                        int[] highScoresToSave = new int[AMOUNT_OF_GAME_MODES]; //gather all highscores using this array
+                        for (int i = 0; i < AMOUNT_OF_GAME_MODES; i++) {
+                            highScoresToSave[i] = gameModeArr[i].highScore;
+                        }
+                        gameSaver.SaveHighScores(highScoresToSave); //save all highscores to file
+                    }
                     checkForGameOver = false;
                     checkFor2048 = false; //it's game over, so no point checking for 2048 anymore either
                     return;
@@ -239,10 +335,10 @@ namespace _2048Clone {
         }
 
         void TitleScreenUpdate() {
-            UpdateTitleScreenInput();
+            
         }
 
-        void UpdateTitleScreenInput() {
+        void UpdateTitleMenuInput() {
             if (titleMenu.Update(inputHelper.GetMousePosition(), inputHelper.CheckForLeftHold(), inputHelper.CheckForLeftRelease())) {
                 titleMenu.Select();
             }
@@ -255,10 +351,6 @@ namespace _2048Clone {
             } else if (inputHelper.CheckForKeyboardPress(Keys.Up) || inputHelper.CheckForGamepadPress(Buttons.DPadUp)) {
                 titleMenu.Move(-1);
             }
-        }
-
-        void PauseMenuUpdate() {
-            UpdatePauseMenuInput();
         }
 
         void UpdatePauseMenuInput() {
@@ -276,46 +368,80 @@ namespace _2048Clone {
             }
         }
 
+        void UpdateSettingsMenuInput() {
+            if (settingsMenu.Update(inputHelper.GetMousePosition(), inputHelper.CheckForLeftHold(), inputHelper.CheckForLeftRelease())) {
+                settingsMenu.Select();
+                settingsMenu.UpdateValues(new string[] { colorHolder.CurrTileColorSetName });
+            }
+            if (inputHelper.CheckForKeyboardPress(Keys.Enter) || inputHelper.CheckForGamepadPress(Buttons.Start) || inputHelper.CheckForGamepadPress(Buttons.A)) {
+                settingsMenu.Select();
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Down) || inputHelper.CheckForGamepadPress(Buttons.DPadDown)) {
+                settingsMenu.Move(1);
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Up) || inputHelper.CheckForGamepadPress(Buttons.DPadUp)) {
+                settingsMenu.Move(-1);
+            } else if (inputHelper.CheckForKeyboardPress(Keys.Escape) || inputHelper.CheckForGamepadPress(Buttons.Back)) {
+                ReturnToTitleScreen();
+            }
+        }
+
         void StartRegularGame() {
-            gameBoardConfig.gridWidth = gameBoardConfig.gridHeight = 4;
-            gameBoardConfig.tileWidth = gameBoardConfig.tileHeight = 128;
-            gameBoardConfig.gameMode = GameMode.Twos;
+            selectedModeIndex = 0;
+            AdjustDrawTiles();
             SetScreenState = ScreenState.InGame;
         }
 
         void StartBigGame() {
-            gameBoardConfig.gridWidth = gameBoardConfig.gridHeight = 8;
-            gameBoardConfig.tileWidth = gameBoardConfig.tileHeight = 64;
-            gameBoardConfig.gameMode = GameMode.Twos;
+            selectedModeIndex = 1;
+            AdjustDrawTiles();
             SetScreenState = ScreenState.InGame;
         }
 
         void StartThreesGame() {
-            gameBoardConfig.gridWidth = gameBoardConfig.gridHeight = 4;
-            gameBoardConfig.tileWidth = gameBoardConfig.tileHeight = 128;
-            gameBoardConfig.gameMode = GameMode.Threes;
+            selectedModeIndex = 2;
+            AdjustDrawTiles();
             SetScreenState = ScreenState.InGame;
         }
 
         void StartDuoGame() {
-            gameBoardConfig.gridWidth = gameBoardConfig.gridHeight = 6;
-            gameBoardConfig.tileWidth = gameBoardConfig.tileHeight = 80;
-            gameBoardConfig.gameMode = GameMode.Twos | GameMode.Threes;
+            selectedModeIndex = 3;
+            AdjustDrawTiles();
             SetScreenState = ScreenState.InGame;
         }
 
+        void AdjustDrawTiles() {
+            tileWidth = gameModeArr[selectedModeIndex].boardConfig.tileWidth;
+            tileHeight = gameModeArr[selectedModeIndex].boardConfig.tileHeight;
+        }
+
         void ShowPauseMenu() {
-            DrawCallEvent += PauseDraw;
-            updateMethod = PauseMenuUpdate;
+            UpdateEvent -= GameUpdate;
+            UpdateEvent += UpdatePauseMenuInput;
+            MenuDrawEvent += pauseMenu.DrawMenu;
         }
 
         void HidePauseMenu() {
-            DrawCallEvent -= PauseDraw;
-            updateMethod = GameUpdate;
+            UpdateEvent -= UpdatePauseMenuInput;
+            UpdateEvent += GameUpdate;
+            MenuDrawEvent -= pauseMenu.DrawMenu;
         }
 
         void ReturnToTitleScreen() {
             SetScreenState = ScreenState.TitleScreen;
+        }
+
+        void GoToSettings() {
+            UpdateEvent -= UpdateTitleMenuInput;
+            settingsMenu.UpdateValues(new string[] {colorHolder.CurrTileColorSetName});
+            UpdateEvent += UpdateSettingsMenuInput;
+            menuDraw = settingsMenu.DrawMenu;
+        }
+
+        void ClearHighscores() {
+            int[] highScoresToSave = new int[AMOUNT_OF_GAME_MODES]; //int array are all 0s when initalized
+            for (int i = 0; i < gameModeArr.Length; i++) {
+                gameModeArr[i].highScore = highScoresToSave[i]; //wipe the highscore out
+            }
+            gameSaver.SaveHighScores(highScoresToSave); //save the cleared highscores to text file
         }
 
         /// <summary>
@@ -324,7 +450,16 @@ namespace _2048Clone {
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime) {
             spriteBatch.Begin();
+            bool useDarkGray = false;
+            for (int x = 0; x < (GraphicsDevice.Viewport.Width / CHECKERBOARD_TILE_SIZE) + 1; x++) {
+                for (int y = 0; y < (GraphicsDevice.Viewport.Height / CHECKERBOARD_TILE_SIZE) + 1; y++) {
+                    Color colorToUse = (useDarkGray) ? Color.DarkGray : Color.Gray;
+                    spriteBatch.DrawRect(new Rectangle(x * CHECKERBOARD_TILE_SIZE, y * CHECKERBOARD_TILE_SIZE, CHECKERBOARD_TILE_SIZE, CHECKERBOARD_TILE_SIZE), colorToUse);
+                    useDarkGray = !useDarkGray;
+                }
+            }
             drawCalls(spriteBatch); //all the extra draw commands (such as OverlayDraw, GameOverDraw, etc.) are called through here.
+            if (menuDraw != null) menuDraw(spriteBatch, Assets.daFont);
             spriteBatch.End();
 
             base.Draw(gameTime);
@@ -332,22 +467,24 @@ namespace _2048Clone {
 
         void TitleScreenDraw(SpriteBatch _spriteBatch) {
             GraphicsDevice.Clear(Color.SeaGreen);
-            _spriteBatch.DrawString(Assets.daFont, "Welcome to 2048!", Vector2.Zero, Color.Black);
-            titleMenu.DrawMenu(_spriteBatch, Assets.daFont);
+            _spriteBatch.DrawString(Assets.daFont, "Welcome to 2048Clone!", Vector2.Zero, Color.Black);
+            _spriteBatch.Draw(gameLogo, new Vector2(GraphicsDevice.Viewport.Width / 6, 0), Color.White);
+            _spriteBatch.DrawString(Assets.daFont, "2014 James Cote", new Vector2(GraphicsDevice.Viewport.Width / 2 - GraphicsDevice.Viewport.Width / 7, GraphicsDevice.Viewport.Height - 28), Color.Black);
         }
 
         void GameDraw(SpriteBatch _spriteBatch) {
             GraphicsDevice.Clear(Color.CornflowerBlue);
             gameBoard.Draw(spriteBatch);
-            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X, boardPos.Y + (gameBoardConfig.tileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
-            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X + (gameBoardConfig.tileWidth * gameBoard.GetBoardWidth), boardPos.Y), Color.Black, 2.0f);
-            spriteBatch.DrawLine(new Vector2(boardPos.X, boardPos.Y + (gameBoardConfig.tileHeight * gameBoard.GetBoardHeight)), new Vector2(boardPos.X + (gameBoardConfig.tileWidth * gameBoard.GetBoardWidth), boardPos.Y + (gameBoardConfig.tileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
-            spriteBatch.DrawLine(new Vector2(boardPos.X + (gameBoardConfig.tileWidth * gameBoard.GetBoardWidth), boardPos.Y), new Vector2(boardPos.X + (gameBoardConfig.tileWidth * gameBoard.GetBoardWidth), boardPos.Y + (gameBoardConfig.tileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X, boardPos.Y + (tileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(boardPos, new Vector2(boardPos.X + (tileWidth * gameBoard.GetBoardWidth), boardPos.Y), Color.Black, 2.0f);
+            spriteBatch.DrawLine(new Vector2(boardPos.X, boardPos.Y + (tileHeight * gameBoard.GetBoardHeight)), new Vector2(boardPos.X + (tileWidth * gameBoard.GetBoardWidth), boardPos.Y + (tileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
+            spriteBatch.DrawLine(new Vector2(boardPos.X + (tileWidth * gameBoard.GetBoardWidth), boardPos.Y), new Vector2(boardPos.X + (tileWidth * gameBoard.GetBoardWidth), boardPos.Y + (tileHeight * gameBoard.GetBoardHeight)), Color.Black, 2.0f);
         }
 
         void OverlayDraw(SpriteBatch _spriteBatch) {
             _spriteBatch.DrawRect(topHUDRect, Color.Orange);
             _spriteBatch.DrawString(Assets.daFont, "Score: " + gameBoard.Score, Vector2.Zero, Color.Black);
+            _spriteBatch.DrawString(Assets.daFont, "Highscore: " + gameBoard.HighScore, new Vector2(GraphicsDevice.Viewport.Width - 200,0), Color.Black);
         }
 
         void GameOverDraw(SpriteBatch _spriteBatch) {
@@ -363,10 +500,6 @@ namespace _2048Clone {
         void GoalDraw3072(SpriteBatch _spriteBatch) {
             _spriteBatch.DrawRect(popupRect, Color.DeepSkyBlue, 2.0f);
             _spriteBatch.DrawString(Assets.daFont, "Congratulations! You made it to 3072! Press Space to remove this message or R to restart.", new Vector2(popupRect.X, popupRect.Y), Color.White);
-        }
-
-        void PauseDraw(SpriteBatch _spriteBatch) {
-            pauseMenu.DrawMenu(_spriteBatch, Assets.daFont);
         }
     }
 

@@ -16,14 +16,32 @@ namespace GameClasses {
         public void Before() {
             gameBoard = new GameBoard(Vector2.Zero);
 
-            Console.WriteLine("GameBoard instance created");
+            Console.WriteLine("Creates an instance of GameBoard that all tests in this section will use.");
         }
 
         [Test]
         public void TestGameBoardNew2048Game() {
             Console.WriteLine("This should initialize all the data needed for a new 2048 game.");
 
-            Assert.Fail("Test not implemented yet.");
+            GameBoardConfig gameBoardConfig;
+            gameBoardConfig.gridWidth = gameBoardConfig.gridHeight = 4;
+            gameBoardConfig.tileWidth = gameBoardConfig.tileHeight = 128;
+            gameBoardConfig.gameMode = GameModeState.Twos;
+
+            GameBoardMode gameBoardMode;
+            gameBoardMode.name = "4x4";
+            gameBoardMode.boardConfig = gameBoardConfig;
+            gameBoardMode.highScore = 0;
+
+            gameBoard.NewGame(gameBoardMode);
+
+            Assert.AreEqual(0, gameBoard.Score);
+            Assert.AreEqual(0, gameBoard.HighScore);
+            Assert.AreEqual(false, gameBoard.IsGameOver);
+            Assert.AreEqual(false, gameBoard.Reached2048);
+            Assert.AreEqual(false, gameBoard.Reached3072);
+            Assert.AreEqual(4, gameBoard.GetBoardWidth);
+            Assert.AreEqual(4, gameBoard.GetBoardHeight);
         }
 
         [Test]
@@ -36,6 +54,13 @@ namespace GameClasses {
         [Test]
         public void TestGameBoardNew3072Game() {
             Console.WriteLine("This should initialize all the data needed for a new 3072 game.");
+
+            Assert.Fail("Test not implemented yet.");
+        }
+
+        [Test]
+        public void TestGameBoardNewDuo2sAnd3sGame() {
+            Console.WriteLine("This should initialize all the data needed for a new duo 2s and 3s game.");
 
             Assert.Fail("Test not implemented yet.");
         }

@@ -171,7 +171,7 @@ namespace _2048Clone {
             }
             //Loading title screen menu
             titleMenu = new Menu();
-            titleMenu.SetPosition(new Vector2((GraphicsDevice.Viewport.Width / 2) - (GraphicsDevice.Viewport.Width / 8), (GraphicsDevice.Viewport.Height / 2) + (GraphicsDevice.Viewport.Height / 6)));
+            titleMenu.SetPosition(new Vector2((GraphicsDevice.Viewport.Width / 2) - (GraphicsDevice.Viewport.Width / 8), (GraphicsDevice.Viewport.Height / 2)));
             MenuButton playGameBtn, playBigGameBtn, playThreesBtn, playDuoButton, settingsBtn, exitGameBtn;
             playGameBtn.name = "Play 4x4 Game";
             playGameBtn.menuAction = StartRegularGame;

@@ -1,0 +1,5 @@
+language: csharp
+solution: 2048Clone.sln
+script:
+    - xbuild /p:TargetFrameworkVersion="v4.5" /p:ToolsVersion="4.0" /p:Configuration=Release 2048Clone.sln
+    - mono ./packages/NUnit.ConsoleRunner.3.2.1/tools/nunit3-console.exe ./Tests/bin/Debug/Tests.dll

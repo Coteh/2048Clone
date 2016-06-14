@@ -1,5 +1,6 @@
 ![Screenshot](2048Clone/Content/Images/Logo.png "2048Clone")
-=========
+
+[![Build Status](https://travis-ci.org/Coteh/2048Clone.svg?branch=master)](https://travis-ci.org/Coteh/2048Clone)
 
 This is my attempt at making a 2048 clone using C# and MonoGame. Here's a screenshot of how the game looks currently:
 

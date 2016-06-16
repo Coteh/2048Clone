@@ -432,6 +432,10 @@ namespace _2048Clone {
         }
 
         void SpawnNewBlock() {
+            //Check if board is not empty before going on
+            if (board.Length == 0) {
+                return;
+            }
             //Determining random tile placement
             int randomX = 0, randomY = 0, attemptsToRandomize = 0;
             do {

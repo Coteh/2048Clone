@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 
 namespace _2048Clone {
     public class GameSaver {
@@ -14,8 +10,6 @@ namespace _2048Clone {
 
         public const string DEFAULT_HIGHSCORE_FILENAME = "highscores.txt";
         string highScoreFilename = DEFAULT_HIGHSCORE_FILENAME;
-
-        static string projectDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase);
 
         public static GameSaver Instance {
             get {
@@ -38,9 +32,7 @@ namespace _2048Clone {
             int[] highScoresToReturn = new int[_amountOfGameModes];
             try {
                 int index = 0;
-                string path = Path.Combine(projectDirectory, highScoreFilename);
-                string localPath = new Uri(path).LocalPath;
-                using (reader = new StreamReader(localPath)) {
+                using (reader = new StreamReader(highScoreFilename)) {
                     while (!reader.EndOfStream && index < _amountOfGameModes) {
                         highScoresToReturn[index] = ConvertToInt(reader.ReadLine());
                         index++;
@@ -56,9 +48,7 @@ namespace _2048Clone {
 
         public void SaveHighScores(int[] _scores) {
             try {
-                string path = Path.Combine(projectDirectory, highScoreFilename);
-                string localPath = new Uri(path).LocalPath;
-                using (writer = new StreamWriter(localPath)) {
+                using (writer = new StreamWriter(highScoreFilename)) {
                     for (int i = 0; i < _scores.Length; i++) {
                         writer.Write(_scores[i]);
                         if (i < _scores.Length - 1) {

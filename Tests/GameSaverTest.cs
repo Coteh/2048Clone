@@ -7,6 +7,7 @@ using NUnit.Framework;
 using Microsoft.Xna.Framework;
 using _2048Clone;
 using System.IO;
+using System.Reflection;
 
 namespace Tests {
     [TestFixture]
@@ -26,8 +27,31 @@ namespace Tests {
         public void TestHighscoresRead() {
             Console.WriteLine("Should read highscores properly.");
 
+            string tempFilePath = Path.Combine(Path.GetTempPath(), "2048Clone_Test_HighscoresRead");
+            string tempFileName = Path.Combine(tempFilePath, "highscores.txt");
+
+            //Create the temp folder
+            Directory.CreateDirectory(tempFilePath);
+
+            //Grab the embedded highscore textfile resource and write it to a temporary location
+            Assembly assem = Assembly.GetExecutingAssembly();
+            Stream stream = assem.GetManifestResourceStream("Tests.highscores.txt");
+            StreamReader streamReader = new StreamReader(stream);
+            StreamWriter streamWriter = new StreamWriter(tempFileName);
+            streamWriter.Write(streamReader.ReadToEnd());
+            streamWriter.Flush();
+            streamWriter.Close();
+            streamReader.Close();
+            Console.WriteLine("Fake highscores saved to temporary location: \"" + tempFileName + "\".");
+
+            //Set the highscore filename
+            gameSaver.HighScoreFileName = tempFileName;
+
+            //Read highscores
+            Console.WriteLine("Reading fake highscores from the temporary location.");
             int[] highscores = gameSaver.ReadHighscores(size);
-            
+
+            //Check if it's right
             Assert.AreEqual(size, highscores.Length);
             for (int i = 0; i < size; i++) {
                 Assert.AreEqual(expectedScores[i], highscores[i]);
@@ -40,10 +64,10 @@ namespace Tests {
 
             int[] loadedScores;
 
-            string tempPath = Path.Combine(Path.GetTempPath(), "2048Clone_Tests");
+            string tempPath = Path.Combine(Path.GetTempPath(), "2048Clone_Test_HighscoresSave");
             string tempFileName = Path.Combine(tempPath, "highscores.txt");
 
-            //Create the temp folder "2048Clone_Tests"
+            //Create the temp folder
             Directory.CreateDirectory(tempPath);
 
             //Assign the new temporary location to GameSaver

@@ -21,7 +21,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-
     <StartAction>Program</StartAction>
     <StartProgram>packages\NUnit.ConsoleRunner.3.2.1\tools\nunit3-console.exe</StartProgram>
     <StartArguments>Tests.dll --wait</StartArguments>
@@ -33,7 +32,6 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-
     <StartAction>Program</StartAction>
     <StartProgram>packages\NUnit.ConsoleRunner.3.2.1\tools\nunit3-console.exe</StartProgram>
     <StartArguments>Tests.dll --wait</StartArguments>
@@ -75,9 +73,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="highscores.txt">
+    <EmbeddedResource Include="highscores.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

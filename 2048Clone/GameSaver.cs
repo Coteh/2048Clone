@@ -46,6 +46,8 @@ namespace _2048Clone {
                         index++;
                     }
                 }
+            } catch (FileNotFoundException) {
+                File.Create(highScoreFilename);
             } catch (Exception e) {
                 throw e;
             }

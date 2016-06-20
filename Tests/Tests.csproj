@@ -21,6 +21,10 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+
+    <StartAction>Program</StartAction>
+    <StartProgram>packages\NUnit.ConsoleRunner.3.2.1\tools\nunit3-console.exe</StartProgram>
+    <StartArguments>Tests.dll --wait</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -29,6 +33,10 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+
+    <StartAction>Program</StartAction>
+    <StartProgram>packages\NUnit.ConsoleRunner.3.2.1\tools\nunit3-console.exe</StartProgram>
+    <StartArguments>Tests.dll --wait</StartArguments>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework, Version=3.5.1.1679, Culture=neutral, processorArchitecture=MSIL">
@@ -66,8 +74,13 @@
       <Name>GameClasses</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="highscores.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>

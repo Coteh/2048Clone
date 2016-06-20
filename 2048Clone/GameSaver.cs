@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace _2048Clone {
@@ -10,6 +11,11 @@ namespace _2048Clone {
 
         StreamReader reader;
         StreamWriter writer;
+
+        public const string DEFAULT_HIGHSCORE_FILENAME = "highscores.txt";
+        string highScoreFilename = DEFAULT_HIGHSCORE_FILENAME;
+
+        static string projectDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase);
 
         public static GameSaver Instance {
             get {
@@ -20,25 +26,37 @@ namespace _2048Clone {
             }
         }
 
+        public string HighScoreFileName {
+            get {
+                return highScoreFilename;
+            } set {
+                highScoreFilename = value;
+            }
+        }
+
         public int[] ReadHighscores(int _amountOfGameModes) {
             int[] highScoresToReturn = new int[_amountOfGameModes];
             try {
                 int index = 0;
-                using (reader = new StreamReader("highscores.txt")) {
+                string path = Path.Combine(projectDirectory, highScoreFilename);
+                string localPath = new Uri(path).LocalPath;
+                using (reader = new StreamReader(localPath)) {
                     while (!reader.EndOfStream && index < _amountOfGameModes) {
                         highScoresToReturn[index] = ConvertToInt(reader.ReadLine());
                         index++;
                     }
                 }
-            } catch {
-                
+            } catch (Exception e) {
+                throw e;
             }
             return highScoresToReturn;
         }
 
         public void SaveHighScores(int[] _scores) {
             try {
-                using (writer = new StreamWriter("highscores.txt")) {
+                string path = Path.Combine(projectDirectory, highScoreFilename);
+                string localPath = new Uri(path).LocalPath;
+                using (writer = new StreamWriter(localPath)) {
                     for (int i = 0; i < _scores.Length; i++) {
                         writer.Write(_scores[i]);
                         if (i < _scores.Length - 1) {
@@ -46,8 +64,8 @@ namespace _2048Clone {
                         }
                     }
                 }
-            } catch {
-
+            } catch (Exception e) {
+                throw e;
             }
         }
 

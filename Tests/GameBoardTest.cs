@@ -81,8 +81,8 @@ namespace GameClasses {
             Console.WriteLine("This should initialize all the data needed for a new duo 2s and 3s game.");
 
             GameBoardConfig gameBoardConfig;
-            gameBoardConfig.gridWidth = gameBoardConfig.gridHeight = 4;
-            gameBoardConfig.tileWidth = gameBoardConfig.tileHeight = 128;
+            gameBoardConfig.gridWidth = gameBoardConfig.gridHeight = 6;
+            gameBoardConfig.tileWidth = gameBoardConfig.tileHeight = 80;
             gameBoardConfig.gameMode = GameModeState.Twos | GameModeState.Threes;
 
             GameBoardMode gameBoardMode;
@@ -97,8 +97,8 @@ namespace GameClasses {
             Assert.AreEqual(false, gameBoard.IsGameOver);
             Assert.AreEqual(false, gameBoard.Reached2048);
             Assert.AreEqual(false, gameBoard.Reached3072);
-            Assert.AreEqual(4, gameBoard.GetBoardWidth);
-            Assert.AreEqual(4, gameBoard.GetBoardHeight);
+            Assert.AreEqual(6, gameBoard.GetBoardWidth);
+            Assert.AreEqual(6, gameBoard.GetBoardHeight);
         }
 
         [Test]
